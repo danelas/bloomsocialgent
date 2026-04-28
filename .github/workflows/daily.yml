@@ -63,6 +63,29 @@ jobs:
         run: npx remotion browser ensure
         working-directory: bloom-remotion-ui
 
+      # Diagnostic: print env var LENGTHS (not values) so we can see which
+      # secrets are reaching the runner. A length of 0 means the secret isn't
+      # set in repo settings, has a typo'd name, or is on the wrong repo.
+      - name: Verify secrets are present
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_POST_API_KEY: ${{ secrets.UPLOAD_POST_API_KEY }}
+          UPLOAD_POST_USER: ${{ secrets.UPLOAD_POST_USER }}
+        run: |
+          echo "ANTHROPIC_API_KEY length: ${#ANTHROPIC_API_KEY}"
+          echo "OPENAI_API_KEY length: ${#OPENAI_API_KEY}"
+          echo "UPLOAD_POST_API_KEY length: ${#UPLOAD_POST_API_KEY}"
+          echo "UPLOAD_POST_USER length: ${#UPLOAD_POST_USER}"
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY is missing or empty. Add it at https://github.com/danelas/bloomsocialgent/settings/secrets/actions"
+            exit 1
+          fi
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY is missing or empty"
+            exit 1
+          fi
+
       - name: Run daily generation
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

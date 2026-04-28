@@ -1,0 +1,23 @@
+{
+  "name": "bloom-roster-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "daily": "tsx src/index.ts",
+    "daily:dry": "tsx src/index.ts --dry-run",
+    "plan-only": "tsx src/index.ts --dry-run --no-video",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.70.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

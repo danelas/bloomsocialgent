@@ -1,0 +1,68 @@
+name: Daily content generation
+
+on:
+  schedule:
+    # 5:00 AM ET → 9:00 UTC (EDT) / 10:00 UTC (EST). We use 09:30 UTC year-round
+    # which is 5:30 AM EDT / 4:30 AM EST. Posts get scheduled forward to
+    # 9 / 12 / 8 ET slot times, so the agent just needs to run before 9 AM ET.
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (generate but don't upload)"
+        type: boolean
+        default: false
+      slot:
+        description: "Single slot only (A, B, or C). Leave blank for all."
+        type: string
+        default: ""
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Remotion needs Chrome for headless rendering
+      - name: Install Chromium for Remotion
+        run: npx -y @remotion/cli@4.0.200 browser ensure
+        working-directory: bloom-remotion-ui
+
+      - name: Install bloom-remotion-ui deps
+        run: npm install --no-audit --no-fund
+        working-directory: bloom-remotion-ui
+
+      - name: Install bloom-roster-agent deps
+        run: npm install --no-audit --no-fund
+        working-directory: bloom-roster-agent
+
+      - name: Run daily generation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPLOAD_POST_API_KEY: ${{ secrets.UPLOAD_POST_API_KEY }}
+          UPLOAD_POST_USER: ${{ secrets.UPLOAD_POST_USER }}
+        working-directory: bloom-roster-agent
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ -n "${{ inputs.slot }}" ]; then ARGS="$ARGS --slot=${{ inputs.slot }}"; fi
+          npx tsx src/index.ts $ARGS
+
+      # Upload preview artifacts so we can inspect what the run produced
+      # (captions, plan.json, generated image, rendered MP4)
+      - name: Upload preview artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-${{ github.run_id }}
+          path: bloom-roster-agent/preview/
+          retention-days: 7
+          if-no-files-found: ignore

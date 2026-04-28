@@ -2,9 +2,7 @@ name: Daily content generation
 
 on:
   schedule:
-    # 5:00 AM ET → 9:00 UTC (EDT) / 10:00 UTC (EST). We use 09:30 UTC year-round
-    # which is 5:30 AM EDT / 4:30 AM EST. Posts get scheduled forward to
-    # 9 / 12 / 8 ET slot times, so the agent just needs to run before 9 AM ET.
+    # 5:30 AM ET → posts get scheduled forward to 9 / 12 / 8 ET slot times
     - cron: "30 9 * * *"
   workflow_dispatch:
     inputs:
@@ -30,10 +28,26 @@ jobs:
         with:
           node-version: "20"
 
-      # Remotion needs Chrome for headless rendering
-      - name: Install Chromium for Remotion
-        run: npx -y @remotion/cli@4.0.200 browser ensure
-        working-directory: bloom-remotion-ui
+      # System libraries Chromium needs for Remotion's headless render on Ubuntu.
+      # Without these, Chromium spawns and immediately crashes with no clear error.
+      - name: Install Chromium system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libgbm1 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libasound2t64 \
+            fonts-liberation \
+            fonts-noto-color-emoji
 
       - name: Install bloom-remotion-ui deps
         run: npm install --no-audit --no-fund
@@ -42,6 +56,12 @@ jobs:
       - name: Install bloom-roster-agent deps
         run: npm install --no-audit --no-fund
         working-directory: bloom-roster-agent
+
+      # Pre-warm the Chrome download so the first render isn't slow.
+      # Uses the locally-installed Remotion CLI (which we just npm-installed above).
+      - name: Pre-install Chrome for Remotion
+        run: npx remotion browser ensure
+        working-directory: bloom-remotion-ui
 
       - name: Run daily generation
         env:
@@ -56,8 +76,6 @@ jobs:
           if [ -n "${{ inputs.slot }}" ]; then ARGS="$ARGS --slot=${{ inputs.slot }}"; fi
           npx tsx src/index.ts $ARGS
 
-      # Upload preview artifacts so we can inspect what the run produced
-      # (captions, plan.json, generated image, rendered MP4)
       - name: Upload preview artifacts
         if: always()
         uses: actions/upload-artifact@v4

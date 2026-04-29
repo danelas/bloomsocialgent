@@ -17,10 +17,10 @@ export async function renderVideo(
   const props = {
     backgroundImage: stagedName,
     pillar: plan.pillar,
-    hook: plan.videoScript.hook,
-    body: plan.videoScript.body,
-    cta: plan.videoScript.cta,
-    onScreenText: plan.videoScript.onScreenText,
+    hook: plan.videoHook,
+    body: plan.videoBody,
+    cta: plan.videoCta,
+    onScreenText: plan.onScreenText,
     musicFile: "",
     musicVolume: 0.4,
   };

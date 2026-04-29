@@ -58,21 +58,21 @@ async function buildSlot(
   await writeJson(resolve(dir, "plan.json"), plan);
 
   // Write each platform's caption to its own file for easy review
-  await writeText(resolve(dir, "caption-instagram.txt"), plan.caption.instagram);
-  await writeText(resolve(dir, "caption-tiktok.txt"), plan.caption.tiktok);
-  await writeText(resolve(dir, "caption-facebook.txt"), plan.caption.facebook);
-  await writeText(resolve(dir, "caption-twitter.txt"), plan.caption.twitter);
+  await writeText(resolve(dir, "caption-instagram.txt"), plan.instagramCaption);
+  await writeText(resolve(dir, "caption-tiktok.txt"), plan.tiktokCaption);
+  await writeText(resolve(dir, "caption-facebook.txt"), plan.facebookCaption);
+  await writeText(resolve(dir, "caption-twitter.txt"), plan.twitterCaption);
   await writeText(
     resolve(dir, "youtube.txt"),
-    `TITLE: ${plan.caption.youtube.title}\n\nDESCRIPTION:\n${plan.caption.youtube.description}`
+    `TITLE: ${plan.youtubeTitle}\n\nDESCRIPTION:\n${plan.youtubeDescription}`
   );
   await writeText(
     resolve(dir, "reddit.md"),
-    `# r/${plan.caption.reddit.subreddit}\n\n## ${plan.caption.reddit.title}\n\n${plan.caption.reddit.body}\n\n---\n\n_Suggested first comment to drop after the post lands:_\n\n> If anyone wants to dig in further, I write more about this stuff at bloomroster.com — happy to answer questions in the thread.`
+    `# r/${plan.redditSubreddit}\n\n## ${plan.redditTitle}\n\n${plan.redditBody}\n\n---\n\n_Suggested first comment to drop after the post lands:_\n\n> If anyone wants to dig in further, I write more about this stuff at bloomroster.com — happy to answer questions in the thread.`
   );
 
   console.log(
-    `[slot ${slot.name}] pillar=${plan.pillar} audience=${plan.audience} style=${plan.style} postType=${plan.postType} subreddit=r/${plan.caption.reddit.subreddit}`
+    `[slot ${slot.name}] pillar=${plan.pillar} audience=${plan.audience} style=${plan.style} postType=${plan.postType} subreddit=r/${plan.redditSubreddit}`
   );
 
   let feedImagePath: string | null = null;
@@ -120,8 +120,8 @@ async function postSlot(
 
   // -------- 1. IMAGE post (IG feed, FB feed) --------
   if (feedImagePath && slot.imagePlatforms.length > 0) {
-    const igCaption = captionWithHashtags(plan, plan.caption.instagram);
-    const fbCaption = captionWithHashtags(plan, plan.caption.facebook);
+    const igCaption = captionWithHashtags(plan, plan.instagramCaption);
+    const fbCaption = captionWithHashtags(plan, plan.facebookCaption);
     // IG and FB get separate posts so each gets its own caption
     for (const p of slot.imagePlatforms) {
       const caption = p === "facebook" ? fbCaption : igCaption;
@@ -144,19 +144,19 @@ async function postSlot(
       let caption: string;
       let title: string;
       if (p === "tiktok") {
-        caption = captionWithHashtags(plan, plan.caption.tiktok);
-        title = plan.caption.tiktok.slice(0, 90);
+        caption = captionWithHashtags(plan, plan.tiktokCaption);
+        title = plan.tiktokCaption.slice(0, 90);
       } else if (p === "instagram") {
-        caption = captionWithHashtags(plan, plan.caption.instagram);
+        caption = captionWithHashtags(plan, plan.instagramCaption);
         title = `Bloom Roster — ${plan.theme}`;
       } else if (p === "facebook") {
-        caption = captionWithHashtags(plan, plan.caption.facebook);
+        caption = captionWithHashtags(plan, plan.facebookCaption);
         title = `Bloom Roster — ${plan.theme}`;
       } else if (p === "youtube") {
-        caption = plan.caption.youtube.description;
-        title = plan.caption.youtube.title;
+        caption = plan.youtubeDescription;
+        title = plan.youtubeTitle;
       } else {
-        caption = plan.caption.tiktok;
+        caption = plan.tiktokCaption;
         title = `Bloom Roster — ${plan.theme}`;
       }
       console.log(`[slot ${slot.name}] video → ${p}`);
@@ -176,7 +176,7 @@ async function postSlot(
   for (const p of slot.textPlatforms) {
     if (p === "x" || p === "twitter") {
       // X posts the video if we have one, otherwise text-only with the image
-      const text = plan.caption.twitter;
+      const text = plan.twitterCaption;
       console.log(`[slot ${slot.name}] text → x`);
       try {
         if (videoPath) {
@@ -207,13 +207,13 @@ async function postSlot(
 
     if (p === "reddit") {
       console.log(
-        `[slot ${slot.name}] text → reddit r/${plan.caption.reddit.subreddit}`
+        `[slot ${slot.name}] text → reddit r/${plan.redditSubreddit}`
       );
       const r = await postToUploadPost({
-        caption: plan.caption.reddit.body,
-        title: plan.caption.reddit.title,
+        caption: plan.redditBody,
+        title: plan.redditTitle,
         platforms: [p],
-        subreddit: plan.caption.reddit.subreddit,
+        subreddit: plan.redditSubreddit,
         scheduledTime,
       });
       console.log(`[slot ${slot.name}] reddit result:`, r);

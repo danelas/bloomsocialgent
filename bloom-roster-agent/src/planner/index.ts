@@ -78,7 +78,7 @@ const POST_PLAN_TOOL = {
 
       instagramCaption: {
         type: "string",
-        description: "200-500 words, founder voice, ends with the trigger CTA",
+        description: "100-180 words MAX. Tight founder voice. 3-4 short paragraphs. Hook line first, then the case in 2-3 lines, then the CTA. Cut every adjective that doesn't earn its place.",
       },
       tiktokCaption: {
         type: "string",
@@ -181,11 +181,11 @@ CRITICAL SFW + PLATFORM-SAFETY GUARDRAILS:
 
 PER-PLATFORM CULTURE — generate native, DISTINCT content per platform:
 
-INSTAGRAM CAPTION: Aspirational founder voice. 200-500 words. Hook line first, then build the case in 3-5 short paragraphs, then CTA. Emoji sparingly.
+INSTAGRAM CAPTION: 100-180 words MAX. Tight founder voice. Hook line first. 2-3 short paragraphs. CTA at the end. Cut every word that doesn't earn its place. Emoji sparingly.
 
 TIKTOK CAPTION: Punchy. <150 chars. No inline hashtags. Hook-first. Casual.
 
-FACEBOOK CAPTION: Older skewing. Trimmed IG version, ~150 words, no emoji.
+FACEBOOK CAPTION: Older skewing. ~80 words, no emoji.
 
 TWITTER CAPTION: Text-FIRST. <240 chars. NO hashtags (kill reach on X). Single bold claim/stat. Adult-friendly platform so language can be more direct. Ends with → bloomroster.com.
 

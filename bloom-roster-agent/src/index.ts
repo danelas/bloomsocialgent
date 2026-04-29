@@ -255,22 +255,26 @@ async function main() {
   console.log(`[bloom-agent] preview root: ${rootDir}`);
 
   const slots: Slot[] = [
-    // Morning — punchy short video for TikTok + X. Reddit goes here (1/day max).
+    // Morning — short video for TikTok + X.
+    // Reddit is generated as markdown (reddit.md) for manual posting from your
+    // personal account. Auto-posting from a new agent account gets filter-nuked.
     {
       name: "A",
       etHour: 9,
       postType: "video-only",
       imagePlatforms: [],
       videoPlatforms: ["tiktok"],
-      textPlatforms: ["x", "reddit"],
+      textPlatforms: ["x"],
     },
-    // Midday — IG/FB feed image + TT/YT video + X. Image-led slot.
+    // Midday — full video blast across video-native platforms + X.
+    // (Removed image-only IG/FB posts — the AI background image alone has no
+    // message; Reels with text overlays outperform static feed posts anyway.)
     {
       name: "B",
       etHour: 12,
-      postType: "ai-image",
-      imagePlatforms: ["instagram", "facebook"],
-      videoPlatforms: ["tiktok", "youtube"],
+      postType: "video-only",
+      imagePlatforms: [],
+      videoPlatforms: ["tiktok", "instagram", "youtube", "facebook"],
       textPlatforms: ["x"],
     },
     // Evening — peak engagement, blast video to all video platforms + X.

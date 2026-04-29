@@ -4,6 +4,7 @@ import {
   PILLARS,
   PILLAR_BRIEFS,
   PILLAR_HASHTAGS,
+  IMAGE_SUBJECTS_BY_PILLAR,
   type Pillar,
 } from "../data/pillars.ts";
 
@@ -254,6 +255,13 @@ export async function planPost(overrides: PlanOverrides = {}): Promise<PostPlan>
   const baseHashtags = PILLAR_HASHTAGS[pillar];
   const subredditOptions = SUBREDDIT_BY_PILLAR[pillar];
 
+  // Pick a random image subject from the curated list for this pillar.
+  // Forces visual variety — every run gets a different scene even within
+  // the same pillar.
+  const subjectOptions = IMAGE_SUBJECTS_BY_PILLAR[pillar];
+  const chosenSubject =
+    subjectOptions[Math.floor(Math.random() * subjectOptions.length)];
+
   const userPrompt = `Plan today's post (${today}).
 
 PILLAR: ${pillar}
@@ -276,7 +284,18 @@ Hook rules:
 - industry-expose pillar: videoHook starts with "Why" or "Here's why"
 - never start with "Hey guys" or "POV"
 
-IMAGE PROMPT: editorial 1024x1536 portrait. Warm cream (#FAF7F2) + deep emerald (#1F4D3F) + gold (#C9A961). Editorial magazine quality, golden hour, premium materials, Miami/South Beach lifestyle. Subjects: flat-lay still life, architectural interior, abstract gold/palm shadow, hands holding phone with dashboard mockup, overhead workspace. NO PEOPLE in revealing clothing. NO body close-ups. End with: "No text, no lettering, no watermarks, no signage, no captions, no logos."
+IMAGE PROMPT: editorial 1024x1536 portrait. Use this EXACT scene as the basis (do NOT substitute or reinterpret — render it precisely):
+
+"${chosenSubject}"
+
+Aesthetic constraints:
+- Color palette strictly cream (#FAF7F2), deep emerald (#1F4D3F), brushed gold (#C9A961), warm charcoal (#1A1A1A). No pinks, no neons, no off-brand colors.
+- Editorial magazine quality, like Kinfolk × Aman Resorts × architectural digest.
+- Premium materials only (linen, marble, brass, gold leaf, velvet, glassware, leather).
+- Miami / South Beach lifestyle adjacent — golden hour, warm directional light.
+- NO PEOPLE in revealing clothing. NO body close-ups. NO suggestive poses. NO faces.
+- The imagePrompt you write should be 60-120 words, faithful to the scene above, with vivid sensory detail (texture, light direction, shadow, materials).
+- End the prompt with: "No text, no lettering, no watermarks, no signage, no captions, no logos."
 
 Now call submit_post_plan with EVERY field populated. Each caption field is its own separate string — instagramCaption, tiktokCaption, facebookCaption, twitterCaption, youtubeTitle, youtubeDescription, redditSubreddit, redditTitle, redditBody. Do NOT merge them.`;
 
@@ -286,6 +305,10 @@ Now call submit_post_plan with EVERY field populated. Each caption field is its 
 
   const MAX_ATTEMPTS = 3;
   let lastError: unknown = null;
+
+  console.log(
+    `[planner] subject for ${pillar}: "${chosenSubject.slice(0, 80)}..."`
+  );
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const resp = await anthropic.messages.create({

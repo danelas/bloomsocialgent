@@ -271,16 +271,7 @@ export async function planPost(overrides: PlanOverrides = {}): Promise<PostPlan>
   const baseHashtags = PILLAR_HASHTAGS[pillar];
   const subredditOptions = SUBREDDIT_BY_PILLAR[pillar];
 
-  const resp = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4000,
-    system: SYSTEM,
-    tools: [POST_PLAN_TOOL],
-    tool_choice: { type: "tool", name: "submit_post_plan" },
-    messages: [
-      {
-        role: "user",
-        content: `Plan today's post (${today}).
+  const userPrompt = `Plan today's post (${today}).
 
 PILLAR: ${pillar}
 PILLAR BRIEF: ${pillarBrief}
@@ -295,6 +286,16 @@ REDDIT SUBREDDIT options (pick ONE for this post): ${subredditOptions.map((s) =>
 
 HASHTAGS: must include these base tags plus 3-5 niche-specific: ${baseHashtags.join(", ")}
 
+⚠️ CAPTION STRUCTURE — STRICTLY ENFORCED:
+The "caption" field MUST be an object with these EXACT 6 keys, each its own string/object:
+  - caption.instagram (string)
+  - caption.tiktok (string)
+  - caption.facebook (string)
+  - caption.twitter (string)
+  - caption.youtube (object with .title and .description)
+  - caption.reddit (object with .subreddit, .title, .body)
+DO NOT collapse into a single combined caption string. DO NOT merge platforms. Each platform gets its own separate, native, distinct content.
+
 VIDEO SCRIPT: 4-6 onScreenText beats, total under 18 seconds, each text under 60 chars. The FINAL beat's "text" must be EXACTLY "${style === "trigger" ? `Comment ${keyword} ↓` : "bloomroster.com"}".
 
 Hook rules:
@@ -304,19 +305,83 @@ Hook rules:
 
 IMAGE PROMPT: editorial 1024x1536 portrait. Warm cream (#FAF7F2) + deep emerald (#1F4D3F) + gold (#C9A961). Editorial magazine quality, golden hour, premium materials (linen, marble, gold, velvet, glassware), Miami/South Beach lifestyle. Subjects: flat-lay still life, architectural interior, abstract gold/palm shadow, hands holding phone with dashboard mockup, overhead workspace. NO PEOPLE in revealing clothing. NO body close-ups. End with: "No text, no lettering, no watermarks, no signage, no captions, no logos."
 
-Now call submit_post_plan with the full plan.`,
-      },
-    ],
-  });
+Now call submit_post_plan with the full plan.`;
 
-  const toolUse = resp.content.find(
-    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
-  );
-  if (!toolUse) {
-    throw new Error(
-      "planner: no tool_use in response. Stop reason: " + resp.stop_reason
+  // Build the conversation. We may add a correction turn if Zod validation fails.
+  const messages: Anthropic.MessageParam[] = [
+    { role: "user", content: userPrompt },
+  ];
+
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const resp = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4000,
+      system: SYSTEM,
+      tools: [POST_PLAN_TOOL],
+      tool_choice: { type: "tool", name: "submit_post_plan" },
+      messages,
+    });
+
+    const toolUse = resp.content.find(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+    );
+    if (!toolUse) {
+      throw new Error(
+        "planner: no tool_use in response. Stop reason: " + resp.stop_reason
+      );
+    }
+
+    const result = PostPlanSchema.safeParse(toolUse.input);
+    if (result.success) {
+      if (attempt > 1) {
+        console.log(`[planner] succeeded on attempt ${attempt}`);
+      }
+      return result.data;
+    }
+
+    lastError = result.error;
+    console.warn(
+      `[planner] attempt ${attempt}/${MAX_ATTEMPTS} failed schema validation:`,
+      result.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; ")
+    );
+
+    if (attempt === MAX_ATTEMPTS) break;
+
+    // Re-prompt Claude with the validation errors so it can correct itself
+    const issuesSummary = result.error.issues
+      .map(
+        (i) =>
+          `- Field "${i.path.join(".") || "(root)"}": ${i.message} (got: ${
+            "received" in i ? i.received : "?"
+          })`
+      )
+      .join("\n");
+
+    messages.push(
+      {
+        role: "assistant",
+        content: [toolUse],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: `Schema validation failed. Fix these issues and call submit_post_plan again:\n\n${issuesSummary}\n\nThe "caption" field MUST be an object with separate string/object values for each of: instagram, tiktok, facebook, twitter, youtube, reddit. Do not collapse it into a single string.`,
+            is_error: true,
+          },
+        ],
+      }
     );
   }
 
-  return PostPlanSchema.parse(toolUse.input);
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("planner: exhausted retries without valid output");
 }

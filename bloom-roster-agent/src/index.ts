@@ -111,30 +111,50 @@ function captionWithHashtags(plan: PostPlan, base: string): string {
   return [base, "", plan.hashtags.map((h) => `#${h}`).join(" ")].join("\n");
 }
 
+type PostOutcome = { platform: string; ok: boolean; error?: string };
+
+async function safePost(
+  label: string,
+  fn: () => Promise<unknown>
+): Promise<PostOutcome> {
+  try {
+    const r = await fn();
+    console.log(`[${label}] ok:`, r);
+    return { platform: label, ok: true };
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err);
+    console.warn(`[${label}] FAILED — continuing. Error: ${msg}`);
+    return { platform: label, ok: false, error: msg };
+  }
+}
+
 async function postSlot(
   slot: Slot,
   built: Awaited<ReturnType<typeof buildSlot>>,
   scheduledTime: Date
-): Promise<void> {
+): Promise<PostOutcome[]> {
   const { plan, feedImagePath, videoPath } = built;
+  const outcomes: PostOutcome[] = [];
 
   // -------- 1. IMAGE post (IG feed, FB feed) --------
   if (feedImagePath && slot.imagePlatforms.length > 0) {
     const igCaption = captionWithHashtags(plan, plan.instagramCaption);
     const fbCaption = captionWithHashtags(plan, plan.facebookCaption);
-    // IG and FB get separate posts so each gets its own caption
     for (const p of slot.imagePlatforms) {
       const caption = p === "facebook" ? fbCaption : igCaption;
       console.log(`[slot ${slot.name}] image → ${p}`);
-      const r = await postToUploadPost({
-        caption,
-        title: `Bloom Roster — ${plan.theme}`,
-        mediaPath: feedImagePath,
-        mediaKind: "image",
-        platforms: [p],
-        scheduledTime,
-      });
-      console.log(`[slot ${slot.name}] ${p} image result:`, r);
+      outcomes.push(
+        await safePost(`slot ${slot.name} ${p} image`, () =>
+          postToUploadPost({
+            caption,
+            title: `Bloom Roster — ${plan.theme}`,
+            mediaPath: feedImagePath,
+            mediaKind: "image",
+            platforms: [p],
+            scheduledTime,
+          })
+        )
+      );
     }
   }
 
@@ -160,47 +180,49 @@ async function postSlot(
         title = `Bloom Roster — ${plan.theme}`;
       }
       console.log(`[slot ${slot.name}] video → ${p}`);
-      const r = await postToUploadPost({
-        caption,
-        title,
-        mediaPath: videoPath,
-        mediaKind: "video",
-        platforms: [p],
-        scheduledTime,
-      });
-      console.log(`[slot ${slot.name}] ${p} video result:`, r);
+      outcomes.push(
+        await safePost(`slot ${slot.name} ${p} video`, () =>
+          postToUploadPost({
+            caption,
+            title,
+            mediaPath: videoPath,
+            mediaKind: "video",
+            platforms: [p],
+            scheduledTime,
+          })
+        )
+      );
     }
   }
 
   // -------- 3. TEXT-FIRST posts (X, Reddit) --------
   for (const p of slot.textPlatforms) {
     if (p === "x" || p === "twitter") {
-      // X posts the video if we have one, otherwise text-only with the image
       const text = plan.twitterCaption;
       console.log(`[slot ${slot.name}] text → x`);
-      try {
-        if (videoPath) {
-          const r = await postToUploadPost({
-            caption: text,
-            mediaPath: videoPath,
-            mediaKind: "video",
-            platforms: [p],
-            scheduledTime,
-          });
-          console.log(`[slot ${slot.name}] x result:`, r);
-        } else if (feedImagePath) {
-          const r = await postToUploadPost({
-            caption: text,
-            mediaPath: feedImagePath,
-            mediaKind: "image",
-            platforms: [p],
-            scheduledTime,
-          });
-          console.log(`[slot ${slot.name}] x result:`, r);
-        }
-      } catch (err) {
-        console.warn(
-          `[slot ${slot.name}] x post failed (Upload-Post may not support media-less x): ${(err as Error).message}`
+      if (videoPath) {
+        outcomes.push(
+          await safePost(`slot ${slot.name} x video`, () =>
+            postToUploadPost({
+              caption: text,
+              mediaPath: videoPath,
+              mediaKind: "video",
+              platforms: [p],
+              scheduledTime,
+            })
+          )
+        );
+      } else if (feedImagePath) {
+        outcomes.push(
+          await safePost(`slot ${slot.name} x image`, () =>
+            postToUploadPost({
+              caption: text,
+              mediaPath: feedImagePath,
+              mediaKind: "image",
+              platforms: [p],
+              scheduledTime,
+            })
+          )
         );
       }
     }
@@ -209,16 +231,21 @@ async function postSlot(
       console.log(
         `[slot ${slot.name}] text → reddit r/${plan.redditSubreddit}`
       );
-      const r = await postToUploadPost({
-        caption: plan.redditBody,
-        title: plan.redditTitle,
-        platforms: [p],
-        subreddit: plan.redditSubreddit,
-        scheduledTime,
-      });
-      console.log(`[slot ${slot.name}] reddit result:`, r);
+      outcomes.push(
+        await safePost(`slot ${slot.name} reddit`, () =>
+          postToUploadPost({
+            caption: plan.redditBody,
+            title: plan.redditTitle,
+            platforms: [p],
+            subreddit: plan.redditSubreddit,
+            scheduledTime,
+          })
+        )
+      );
     }
   }
+
+  return outcomes;
 }
 
 async function main() {
@@ -266,6 +293,8 @@ async function main() {
   const forceAudience = argValue("audience") as Audience | undefined;
 
   const now = new Date();
+  const allOutcomes: PostOutcome[] = [];
+
   for (const slot of active) {
     const scheduledTime = etHourToUtc(slot.etHour, 0, now);
     console.log(
@@ -279,7 +308,32 @@ async function main() {
       continue;
     }
 
-    await postSlot(slot, built, scheduledTime);
+    const slotOutcomes = await postSlot(slot, built, scheduledTime);
+    allOutcomes.push(...slotOutcomes);
+  }
+
+  // Summary
+  if (allOutcomes.length > 0) {
+    const ok = allOutcomes.filter((o) => o.ok);
+    const failed = allOutcomes.filter((o) => !o.ok);
+    console.log(
+      `\n[bloom-agent] Summary: ${ok.length} succeeded, ${failed.length} failed (of ${allOutcomes.length} total)`
+    );
+    if (ok.length > 0) {
+      console.log("  ✓ Succeeded: " + ok.map((o) => o.platform).join(", "));
+    }
+    if (failed.length > 0) {
+      console.log("  ✗ Failed:");
+      for (const f of failed) {
+        console.log(`    - ${f.platform}: ${f.error}`);
+      }
+      // Only exit non-zero if EVERYTHING failed (real broken state).
+      // If some platforms worked, the run is a success — failed ones just need
+      // their accounts connected in Upload-Post.
+      if (ok.length === 0) {
+        process.exit(1);
+      }
+    }
   }
 }
 

@@ -5,6 +5,7 @@ import {
   PILLAR_BRIEFS,
   PILLAR_HASHTAGS,
   IMAGE_SUBJECTS_BY_PILLAR,
+  SPOTLIGHT_NICHES,
   type Pillar,
 } from "../data/pillars.ts";
 
@@ -23,6 +24,7 @@ export const SUBREDDIT_BY_PILLAR: Record<Pillar, string[]> = {
   "money-truth": ["CreatorEconomy", "InfluencerMarketing", "Entrepreneur"],
   "industry-expose": ["CreatorEconomy", "InfluencerMarketing", "Marketing"],
   "creator-belonging": ["CreatorEconomy", "InfluencerMarketing", "ContentCreators"],
+  "niche-spotlight": ["CreatorEconomy", "ContentCreators", "InfluencerMarketing"],
   "bloom-bts": ["startups", "Entrepreneur", "SideProject", "buildinpublic"],
   "creator-coaching": ["CreatorEconomy", "InfluencerMarketing", "smallbusiness"],
   "aesthetic-mood": ["startups", "Entrepreneur"],
@@ -257,16 +259,35 @@ export async function planPost(overrides: PlanOverrides = {}): Promise<PostPlan>
   const subredditOptions = SUBREDDIT_BY_PILLAR[pillar];
 
   // Pick a random image subject from the curated list for this pillar.
-  // Forces visual variety — every run gets a different scene even within
-  // the same pillar.
   const subjectOptions = IMAGE_SUBJECTS_BY_PILLAR[pillar];
   const chosenSubject =
     subjectOptions[Math.floor(Math.random() * subjectOptions.length)];
+
+  // For niche-spotlight pillar, pick a random niche to feature in this post
+  const chosenNiche =
+    pillar === "niche-spotlight"
+      ? SPOTLIGHT_NICHES[
+          Math.floor(Math.random() * SPOTLIGHT_NICHES.length)
+        ]
+      : null;
+
+  const nicheDirective = chosenNiche
+    ? `
+
+🎯 NICHE TO SPOTLIGHT THIS POST: **${chosenNiche.name}**
+
+Their specific pain: ${chosenNiche.pain}
+
+Brand categories that pay for THIS audience: ${chosenNiche.brandFit}
+
+Open the hook by addressing this niche by name (e.g., "${chosenNiche.name} — read this." or "If you're a ${chosenNiche.name.replace(/s$/, "")}, this is for you."). Make them feel SEEN. Reference their specific pain in the body. List the specific brand categories above as the opportunity.`
+    : "";
 
   const userPrompt = `Plan today's post (${today}).
 
 PILLAR: ${pillar}
 PILLAR BRIEF: ${pillarBrief}
+${nicheDirective}
 
 ${audienceDirective}
 ${ctaDirective}
@@ -310,6 +331,9 @@ Now call submit_post_plan with EVERY field populated. Each caption field is its 
   console.log(
     `[planner] subject for ${pillar}: "${chosenSubject.slice(0, 80)}..."`
   );
+  if (chosenNiche) {
+    console.log(`[planner] niche spotlight: ${chosenNiche.name}`);
+  }
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const resp = await anthropic.messages.create({

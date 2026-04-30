@@ -22,6 +22,7 @@ export type PostType = (typeof POST_TYPES)[number];
 export const SUBREDDIT_BY_PILLAR: Record<Pillar, string[]> = {
   "money-truth": ["CreatorEconomy", "InfluencerMarketing", "Entrepreneur"],
   "industry-expose": ["CreatorEconomy", "InfluencerMarketing", "Marketing"],
+  "creator-belonging": ["CreatorEconomy", "InfluencerMarketing", "ContentCreators"],
   "bloom-bts": ["startups", "Entrepreneur", "SideProject", "buildinpublic"],
   "creator-coaching": ["CreatorEconomy", "InfluencerMarketing", "smallbusiness"],
   "aesthetic-mood": ["startups", "Entrepreneur"],

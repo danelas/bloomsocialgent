@@ -5,6 +5,7 @@
 export const PILLARS = [
   "money-truth",
   "industry-expose",
+  "creator-belonging",
   "bloom-bts",
   "creator-coaching",
   "aesthetic-mood",
@@ -16,6 +17,8 @@ export const PILLAR_BRIEFS: Record<Pillar, string> = {
   "money-truth": `Real, specific dollar figures from the adult-friendly creator economy. What creators in [niche] actually earn from brand deals. What spirits brands pay for swimwear creators. What Don Julio paid the last 3 creators they hired. The hook is always a number in the first 1.5 seconds. Shock + specificity = shares + saves. Frame numbers as facts the viewer didn't know — never as bragging.`,
 
   "industry-expose": `Truth-telling about the gatekeeping in the influencer industry. Why mainstream marketplaces (Aspire, GRIN, Collabstr — refer to them as "the big platforms" without naming, to avoid algorithmic flagging) ban this entire category. What brand marketers say off the record about wanting these audiences. The structural arbitrage that exists because of the gap. Tone: insider, slightly conspiratorial, factual. Never bitter or whiny.`,
+
+  "creator-belonging": `Direct, second-person address to creators who've been told they're not the right fit. Specific pain points: banned from mainstream marketplaces, shadowbanned without explanation, sent gift-card "collabs" instead of real money, locked out of brand deals their reach should command, treated as second-class because their niche is adult-friendly. Frame: "You've been told you don't fit. The truth is the platforms weren't built for you. We were." Tone: warm, validating, sister-in-the-trenches energy. NOT victim-y, NOT pity. Empowering and matter-of-fact. Hooks like: "If a brand has ever offered you a $50 gifted set instead of $1,500 for a Reel — this is for you" / "You were never the problem. The marketplace was never built for you. Until now" / "Every door the big platforms close, we build the room you actually belong in." This is the heart-of-the-brand pillar — speaks DIRECTLY to the creator's lived experience of rejection.`,
 
   "bloom-bts": `Founder-perspective behind-the-scenes of building Bloom Roster. "Brand briefs that came in this week." "Just signed creator #X." "Day in the life of building a creator marketplace in Miami." Builds trust + parasocial pull. Should feel like watching a Shark Tank winner build the company in public. Talking head + B-roll of laptop, dashboard, Miami palm trees, coffee, etc.`,
 
@@ -42,6 +45,14 @@ export const IMAGE_SUBJECTS_BY_PILLAR: Record<Pillar, string[]> = {
     "Close-up: half-open vintage briefcase showing cream silk lining, single gold key resting inside, deep emerald velvet underneath, palm leaf shadow across the marble surface beneath.",
     "Side view: tarnished old brass key on left, polished new gold key on right, both resting on cream linen with deep emerald velvet underneath, warm sunset light separating them with shadow.",
     "Architectural detail: gilded iron gate (closed), warm sunset light filtering through the bars, cream stucco wall behind, casting long ornate shadow patterns onto cream marble floor in foreground.",
+  ],
+  "creator-belonging": [
+    "Architectural shot: a single warmly lit golden door open at the end of a long cream stone hallway, golden hour light streaming through, palm shadow across the floor — symbolic of an open invitation.",
+    "Cream linen banquette with a single reserved place setting: cream china, deep emerald napkin, gold cutlery, single white orchid in bud vase. Warm sunset light. Implied: a seat saved for you.",
+    "Top-down: a velvet-lined cream jewelry box open, displaying a single gold key with a deep emerald silk tassel — symbolic of being given the key to a private space.",
+    "Soft-focus interior: a cream velvet armchair beside a Miami window with palm shadows falling across it, warm afternoon light, single coffee cup steaming on side table — implied warmth, refuge.",
+    "Architectural close-up: the words VACANCY engraved subtly in brass on a cream stone wall, small gold bell beside it, golden hour shadow — but render text as abstract gold mark NOT letters.",
+    "Hands (forearms only, gold watch + cream sleeve, no skin close-up) holding open a cream folio displaying a single embossed gold-foil card with abstract bloom mark — like a member's invitation.",
   ],
   "bloom-bts": [
     "Overhead workspace: open MacBook with abstract dashboard interface (no readable text), gold pen, espresso cup with cream rim, single dried palm frond across corner, warm linen surface, golden hour sun from left.",
@@ -84,6 +95,13 @@ export const PILLAR_HASHTAGS: Record<Pillar, string[]> = {
     "BrandDeals",
     "CreatorAdvice",
     "MarketingTruth",
+  ],
+  "creator-belonging": [
+    "CreatorEconomy",
+    "ContentCreator",
+    "CreatorLife",
+    "InfluencerMarketing",
+    "BrandDeals",
   ],
   "bloom-bts": [
     "BuildInPublic",
